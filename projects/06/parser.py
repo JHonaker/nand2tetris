@@ -1,11 +1,3 @@
-def commandType(com):
-	if com[0] == '@':
-		return "A_COMMAND"
-	elif com[0] == '(':
-		return "L_COMMAND"
-	else: 
-		return "C_COMMAND"
-
 class Parser:
 
 	def __init__(self, filename):
@@ -24,10 +16,20 @@ class Parser:
 			if self.commands[i] != '' and self.commands[i][0:2] != '//':
 				tempCommands.append(self.commands[i])
 		return tempCommands
+	
+	def commandType(self, comNum):
+		com = self.commands[comNum]
+		if com[0] == '@':
+			return "A_COMMAND"
+		elif com[0] == '(':
+			return "L_COMMAND"
+		else: 
+			return "C_COMMAND"
+
 
 	def symbol(self, comNum):
 		com = self.commands[comNum]
-		comType = commandType(com)
+		comType = self.commandType(comNum)
 		if comType == "C_COMMAND":
 			return "INVALID COMMAND TYPE"
 		elif comType == "A_COMMAND":
@@ -39,7 +41,7 @@ class Parser:
 
 	def dest(self, comNum):
 		com = self.commands[comNum]
-		comType = commandType(com)
+		comType = self.commandType(comNum)
 		if comType == "C_COMMAND":
 			index = com.find('=')
 			if index != -1:
@@ -56,7 +58,7 @@ class Parser:
 				else:
 					return "INVALID DEST"
 			else:
-				return "NO DEST FOUND"
+				return "null"
 		else:
 			return "INVALID COMMAND TYPE"
 
@@ -92,7 +94,7 @@ class Parser:
 			"D|M" ]
 
 		comp_raw = self.commands[comNum]
-		comType = commandType(comp_raw)
+		comType = self.commandType(comNum)
 		if comType == 'C_COMMAND':
 			eqIndex = comp_raw.find('=')
 			scIndex = comp_raw.find(';')
@@ -112,7 +114,7 @@ class Parser:
 
 	def jump(self, comNum):
 		jump_raw = self.commands[comNum]
-		comType = commandType(jump_raw)
+		comType = self.commandType(comNum)
 		if comType == 'C_COMMAND':
 			scIndex = jump_raw.find(';')
 
