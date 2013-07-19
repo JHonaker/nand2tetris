@@ -61,18 +61,51 @@ class Parser:
 			return "INVALID COMMAND TYPE"
 
 	def comp(self, comNum):
+		cVals = [
+			"0"  ,
+			"1"  ,
+			"-1" ,
+			"D"  ,
+			"A"  ,
+			"!D" ,
+			"!A" ,
+			"-D" ,
+			"-A" ,
+			"D+1",
+			"A+1",
+			"D-1",
+			"A-1",
+			"D+A",
+			"D-A",
+			"A-D",
+			"D&A",
+			"D|A",
+			"M"  ,
+			"!M" ,
+			"-M" ,
+			"M+1",
+			"M-1",
+			"D+M",
+			"D-M",
+			"M-D",
+			"D&M",
+			"D|M" ]
+
 		comp_raw = self.commands[comNum]
 		comType = commandType(comp_raw)
 		if comType == 'C_COMMAND':
 			eqIndex = comp_raw.find('=')
 			scIndex = comp_raw.find(';')
-			
+
 			if eqIndex != -1:
 				comp_raw = comp_raw[eqIndex+1:]
 			if scIndex != -1:
 				comp_raw = comp_raw[:scIndex]
 
-			return comp_raw
+			if comp_raw in cVals:
+				return comp_raw
+			else:
+				raise Error(comp_raw)
 
 		else:
 			return "INVALID COMMAND TYPE"
@@ -87,6 +120,6 @@ class Parser:
 				jump_raw = jump_raw[scIndex+1:]
 				return jump_raw
 			else:
-				return "NO JUMP FOUND"
+				return "null"
 		else:
 			return "INVALID COMMAND TYPE"
