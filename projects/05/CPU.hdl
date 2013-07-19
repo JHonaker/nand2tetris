@@ -38,5 +38,60 @@ CHIP CPU {
         pc[15];          // ROM address (of next instruction)
 
      PARTS:
-    // Put your code here.
+	 // Instruction specification:
+	 // ixx a cccccc ddd jj
+	 // i-bit codes the instruction type (C or A)
+	 // instruction[15]
+	 // C-instruction: i = 1
+	 // a-bit and c-bit code the comp part,
+	 // instruction[12] and instruction[6..11]
+	 // d-bits code the dest part,
+	 // instruction[3..5]
+	 // j-bits code the jump part
+	 // instruction[0..2]
+	 // A-instruction: i = 0
+	 // 15 other bits interpreted as the 15-bit memory location
+
+	 // Decoding information
+	 // Decode write register information
+	 Not(in=instruction[15], out=aInst);
+	 Not(in=aInst, out=cInst);
+	 And(a=cInst, b=instruction[4], out=dWrite);
+	 And(a=cInst, b=instruction[5], out=awrite);
+	 Or(a=aInst, b=awrite, out=aWrite);
+	 And(a=cInst, b=instruction[3], out=writeM);
+	 // Decode Mux controller information
+	 And(a=cInst, b=instruction[12], out=amControl);
+	 // Decode jumping information
+	 Not(in=ng, out=zeroOrG);
+	 And(a=zeroOrG, b=nonzero, out=pos);
+	 Not(in=zr, out=nonzero);
+	 And(a=zr, b=instruction[1], out=jEq);
+	 And(a=ng, b=instruction[2], out=jLess);
+	 And(a=pos, b=instruction[0], out=jGreat);
+	 Or(a=jEq, b=jLess, out=jt);
+	 Or(a=jt, b=jGreat, out=jT);
+	 And(a=cInst, b=jT, out=jump);
+
+	 // A/C-instruction mux
+	 Mux16(a=aluOut, b=instruction, sel=aInst, out=aMuxOut);
+
+	 ARegister(in=aMuxOut, load=aWrite, out=aOut, out[0..14]=addressM);
+	 DRegister(in=aluOut, load=dWrite, out=dOut);
+	 
+	 // A/M ALU input mux
+	 Mux16(a=aOut, b=inM, sel=amControl, out=amOut);
+
+	 // ALU
+	 ALU(x=dOut, y=amOut, 
+	 		no=instruction[6], 
+			f=instruction[7], 
+			ny=instruction[8], 
+			zy=instruction[9],
+			nx=instruction[10],
+			zx=instruction[11],
+		 zr=zr, ng=ng, out=outM, out=aluOut);
+		 
+	 // Program counter
+	 PC(in=aOut, load=jump, reset=reset, inc=true, out[0..14]=pc);
 }
