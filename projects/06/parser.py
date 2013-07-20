@@ -7,6 +7,7 @@ class Parser:
 		self.commands = f.readlines()
 		f.close()
 		# Remove newline char from the input string
+		self.commands = [com.split('//')[0] for com in self.commands]
 		self.commands = [com.strip() for com in self.commands]
 		self.commands = self._trimLines()
 
@@ -107,7 +108,7 @@ class Parser:
 			if comp_raw in cVals:
 				return comp_raw
 			else:
-				raise Error(comp_raw)
+				raise 
 
 		else:
 			return "INVALID COMMAND TYPE"
