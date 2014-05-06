@@ -1,3 +1,4 @@
 tools/*
 *.swp
 .DS_Store
+*.pyc
