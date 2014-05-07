@@ -21,6 +21,7 @@ class parser:
 
         # Initialize the first command to -1 (Initially blank command)
         self.cmdIndex = -1
+        self.currentCommand = None
 
     def _trimLines(self):
         """Removes blank lines and comment (//) only lines from self.commands"""
@@ -44,7 +45,7 @@ class parser:
 
         if (self.hasMoreCommands() == True):
             self.cmdIndex += 1
-            print '%s: %s' % (self.commands[self.cmdIndex], self.commandType())
+            self.currentCommand = self.commands[self.cmdIndex].split(' ')
 
     def commandType(self):
         """Returns the type of the current VM command.
@@ -55,7 +56,8 @@ class parser:
                 'lt', 'and', 'or', 'not'
                 ]
 
-        command = self.commands[self.cmdIndex].split(' ')
+        command = self.currentCommand
+
 
         if (command[0] in C_ARITHMETIC):
             return 'C_ARITHMETIC'
@@ -72,10 +74,22 @@ class parser:
         In the case of C_ARITHMETIC the command itself (add,
         sub, etc.) is returned. Should not be called if the
         current command is C_RETURN."""
-        pass
+
+        if (self.commandType() == 'C_RETURN'):
+            return None
+
+        elif (self.commandType() == 'C_ARITHMETIC'):
+            return self.currentCommand[0]
+
+        else:
+            return self.currentCommand[1]
 
     def arg2(self):
         """Returns the second argument of the current command.
         Should be called only if the current command is
         C_PUSH, C_POP, C_FUNCTION, OR C_CALL."""
-        pass
+
+        if (self.commandType() in ['C_PUSH', 'C_POP', 'C_FUNCTION', 'C_CALL']):
+            return self.currentCommand[2]
+        else:
+            return None
