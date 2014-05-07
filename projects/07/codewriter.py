@@ -1,6 +1,8 @@
 # Current temporary stage one implementation of the VM Code Generator
 #
 # Stack Arithmetic, Logical Commands, push contstant x
+# 
+# Reference Note: -1 is true, 0 is false
 
 import os
 from parser import *
@@ -14,6 +16,10 @@ class CodeWriter:
         isDirectory = outfile[-3:] != '.vm'
 
         self.outfile = open(outfile[:-3] + '.asm', 'w')
+        
+        # Create the current label.
+        # This is machine read and wrote, so numeric labels will suffice
+        self.nextLabel = 0
 
         if (isDirectory):
             for file in os.listdir('/' + outfile):
@@ -52,27 +58,27 @@ class CodeWriter:
         """Writes the assembly code that is the given translation
         of the command given."""
         print command
+        # Arithmetic
         if (command == 'add'):
             self.binaryOp('D+A')
         elif (command == 'sub'):
-            self.binaryOp('D-A')
+            self.binaryOp('A-D')
         elif (command == 'neg'):
             self.unaryOp('-D')
-        elif (command == 'eq'):
-            # Uses Jump
-            pass
-        elif (command == 'gt'):
-            # Uses Jump
-            pass
-        elif (command == 'lt'):
-            # Uses Jump
-            pass
+        # Bitwise
         elif (command == 'and'):
             self.binaryOp('D&A')
         elif (command == 'or'):
             self.binaryOp('D|A')
         elif (command == 'not'):
             self.unaryOp('!D')
+        # Logical
+        elif (command == 'eq'):
+            self.logicalOp('JEQ')
+        elif (command == 'gt'):
+            self.logicalOp('JGT')
+        elif (command == 'lt'):
+            self.logicalOp('JLT')
 
     def writePushPop(self, command, segment, index):
         """Writes the assembly code that is the translation of the
@@ -94,7 +100,7 @@ class CodeWriter:
         self.decreaseStackPointer()
         self.stackToDest('D')
         self.cCommand('D', comp)
-        self.compToStack(comp)
+        self.compToStack('D')
         self.increaseStackPointer()
 
     def binaryOp(self, comp):
@@ -106,6 +112,26 @@ class CodeWriter:
         self.stackToDest('A')
         self.cCommand('D', comp)
         self.compToStack('D')
+        self.increaseStackPointer()
+
+    def logicalOp(self, jump):
+        """Pops two arguments off the stack, perform comp.
+        Properly manages stack pointer.
+        Returns -1 for true, 0 for false."""
+        # Create new label for branching
+        # Note, this does not write it to asm
+        trueLabel = self.newLabel()
+
+        self.decreaseStackPointer()
+        self.stackToDest('D')
+        self.decreaseStackPointer()
+        self.stackToDest('A')
+        self.cCommand('D', 'A-D')
+        self.compToStack('-1')
+        self.aCommand(trueLabel)
+        self.cCommand(None, 'D', jump)
+        self.compToStack('0')
+        self.lCommand(trueLabel)
         self.increaseStackPointer()
 
     def increaseStackPointer(self):
@@ -126,13 +152,17 @@ class CodeWriter:
 
     def compToStack(self, comp):
         """Place the computation into the top of stack."""
-        self.aCommand('SP')
+        self.loadSP()
         self.cCommand('M', comp)
 
     def stackToDest(self, dest):
         """Place the value in the stack in the dest."""
-        self.aCommand('SP')
+        self.loadSP()
         self.cCommand(dest, 'M')
+
+    def loadSP(self):
+        self.aCommand('SP')
+        self.cCommand('A', 'M')
 
     def cCommand(self, dest, comp, jump = None):
         """Write out a C command in Hack assembly."""
@@ -146,4 +176,13 @@ class CodeWriter:
     def aCommand(self, addr):
         """Write out an A command in Hack assemply."""
         self.outfile.write('@' + addr + '\n')
+
+    def lCommand(self, label):
+        """Creates a new (label) for the assembler."""
+        self.outfile.write('('+label+')\n')
+
+    def newLabel(self):
+        """Creates the next unused label."""
+        self.nextLabel += 1
+        return 'L' + str(self.nextLabel)
 
