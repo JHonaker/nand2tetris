@@ -9,17 +9,17 @@ class CodeWriter:
         ready to write into it."""
         pass
 
-    def setFileName(fileName):
+    def setFileName(self, fileName):
         """Informs the code writer that the translations of
         a new VM file has started."""
         pass
 
-    def writeArithmetic(command):
+    def writeArithmetic(self, command):
         """Writes the assembly code that is the given translation
         of the command given."""
         pass
 
-    def writePushPop(command, segment, index):
+    def writePushPop(self, command, segment, index):
         """Writes the assembly code that is the translation of the
         given command, where command is either C_PUSH or C_POP."""
         pass
