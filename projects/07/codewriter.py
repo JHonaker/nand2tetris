@@ -42,6 +42,10 @@ class CodeWriter:
             p.advance()
             self.dispatchWriter(p.commandType(), p.currentCommand)
 
+    def newLabel(self):
+        """Creates the next unused label."""
+        self.nextLabel += 1
+        return 'L' + str(self.nextLabel)
 
     def dispatchWriter(self, commandType, command):
         """Dispatches the write for the given command type."""
@@ -84,16 +88,21 @@ class CodeWriter:
         """Writes the assembly code that is the translation of the
         given command, where command is either C_PUSH or C_POP."""
         if (command == 'push'):
+
             if (segment == 'constant'):
-                # @ + index
                 self.constToStack(index)
-                self.increaseStackPointer()
-        else:
-            # push
-            pass
+            else:
+                self.regToStack(segment, index)
 
-        print command + ' ' + segment + ' ' + index
+            self.increaseStackPointer()
 
+        elif (command == 'pop'):
+
+            self.decreaseStackPointer()
+            self.stackToReg(segment, index)
+
+
+    # Stack Operator Commands
     def unaryOp(self, comp):
         """Pop one argument off the stack, perform comp.
         Properly manages stack pointer."""
@@ -134,6 +143,56 @@ class CodeWriter:
         self.lCommand(trueLabel)
         self.increaseStackPointer()
 
+    # Register manipulators
+    def registerAddress(self, segment, index):
+        """Read the address of the register (segment index) into A and D."""
+        segments = {'pointer': 3, 'temp': 5, 'local': 'LCL', 'argument': 'ARG',
+                'this': 'THIS', 'that': 'THAT', 'static': 'TODO: DO NOT KEEP THIS'}
+
+        self.aCommand(index)
+        self.cCommand('D', 'A')
+        self.aCommand(segments[segment])
+        if (segment in ['local', 'argument', 'this', 'that']):
+            self.cCommand('A', 'M')
+        self.cCommand('AD', 'D+A')
+
+
+    # Write to stack commands
+    def constToStack(self, const):
+        """Place value at address to stack."""
+        self.aCommand(const)
+        self.cCommand('D', 'A')
+        self.compToStack('D')
+
+    def regToStack(self, segment, index):
+        """Place the value of the register on the stack."""
+        self.registerAddress(segment, index)
+        self.cCommand('D', 'M') # compToStack overwrites A, so move to D first
+        self.compToStack('D')
+
+    def compToStack(self, comp):
+        """Place the computation into the top of stack."""
+        self.loadSP()
+        self.cCommand('M', comp)
+
+    # Read from stack commands
+    def stackToDest(self, dest):
+        """Place the value in the stack in the dest."""
+        self.loadSP()
+        self.cCommand(dest, 'M')
+
+    def stackToReg(self, segment, index):
+        """Place the value in the stack into the appropriate register."""
+        self.registerAddress(segment, index)
+        self.aCommand('R13')
+        self.cCommand('M', 'D')
+        self.stackToDest('D')
+        self.aCommand('R13')
+        self.cCommand('A', 'M')
+        self.cCommand('M', 'D')
+
+
+    # Stack pointer manipulators
     def increaseStackPointer(self):
         """Increase the stack pointer."""
         self.aCommand('SP')
@@ -144,26 +203,12 @@ class CodeWriter:
         self.aCommand('SP')
         self.cCommand('M', 'M-1')
 
-    def constToStack(self, const):
-        """Place value at address to stack."""
-        self.aCommand(const)
-        self.cCommand('D', 'A')
-        self.compToStack('D')
-
-    def compToStack(self, comp):
-        """Place the computation into the top of stack."""
-        self.loadSP()
-        self.cCommand('M', comp)
-
-    def stackToDest(self, dest):
-        """Place the value in the stack in the dest."""
-        self.loadSP()
-        self.cCommand(dest, 'M')
-
     def loadSP(self):
         self.aCommand('SP')
         self.cCommand('A', 'M')
 
+
+    # Command Writers
     def cCommand(self, dest, comp, jump = None):
         """Write out a C command in Hack assembly."""
         if (dest != None):
@@ -175,14 +220,10 @@ class CodeWriter:
 
     def aCommand(self, addr):
         """Write out an A command in Hack assemply."""
-        self.outfile.write('@' + addr + '\n')
+        self.outfile.write('@' + str(addr) + '\n')
 
     def lCommand(self, label):
         """Creates a new (label) for the assembler."""
         self.outfile.write('('+label+')\n')
 
-    def newLabel(self):
-        """Creates the next unused label."""
-        self.nextLabel += 1
-        return 'L' + str(self.nextLabel)
 
