@@ -21,6 +21,10 @@ class CodeWriter:
         # This is machine read and wrote, so numeric labels will suffice
         self.nextLabel = 0
 
+        # Static label, this changes with each filename:
+        # Forms the command labels @Xxx.j
+        self.staticPrefix = ''
+
         if (isDirectory):
             for file in os.listdir('/' + outfile):
                 if file.endswith(".vm"):
@@ -37,16 +41,24 @@ class CodeWriter:
         """Informs the code writer that the translations of
         a new VM file has started."""
         p = parser(fileName)
+        self.staticPrefix = fileName.split('.')[0]
 
         while(p.hasMoreCommands()):
             p.advance()
             self.dispatchWriter(p.commandType(), p.currentCommand)
 
+    # Label creating functions
     def newLabel(self):
         """Creates the next unused label."""
         self.nextLabel += 1
         return 'L' + str(self.nextLabel)
+    
+    def staticLabel(self, index):
+        """Returns the static label of the index."""
+        return self.staticPrefix + '.' + str(index)
 
+    
+    # Command writers and the dispatcher
     def dispatchWriter(self, commandType, command):
         """Dispatches the write for the given command type."""
 
@@ -56,7 +68,6 @@ class CodeWriter:
             self.writePushPop(command[0], command[1], command[2])
         else:
             pass
-
 
     def writeArithmetic(self, command):
         """Writes the assembly code that is the given translation
@@ -143,11 +154,12 @@ class CodeWriter:
         self.lCommand(trueLabel)
         self.increaseStackPointer()
 
+
     # Register manipulators
     def registerAddress(self, segment, index):
         """Read the address of the register (segment index) into A and D."""
         segments = {'pointer': 3, 'temp': 5, 'local': 'LCL', 'argument': 'ARG',
-                'this': 'THIS', 'that': 'THAT', 'static': 'TODO: DO NOT KEEP THIS'}
+                'this': 'THIS', 'that': 'THAT', 'static': self.staticLabel(index) }
 
         self.aCommand(index)
         self.cCommand('D', 'A')
@@ -164,16 +176,17 @@ class CodeWriter:
         self.cCommand('D', 'A')
         self.compToStack('D')
 
+    def compToStack(self, comp):
+        """Place the computation into the top of stack."""
+        self.loadSP()
+        self.cCommand('M', comp)
+
     def regToStack(self, segment, index):
         """Place the value of the register on the stack."""
         self.registerAddress(segment, index)
         self.cCommand('D', 'M') # compToStack overwrites A, so move to D first
         self.compToStack('D')
 
-    def compToStack(self, comp):
-        """Place the computation into the top of stack."""
-        self.loadSP()
-        self.cCommand('M', comp)
 
     # Read from stack commands
     def stackToDest(self, dest):
