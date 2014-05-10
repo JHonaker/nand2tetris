@@ -62,11 +62,26 @@ class parser:
         if (command[0] in C_ARITHMETIC):
             return 'C_ARITHMETIC'
 
-        if (command[0] == 'push'):
+        elif (command[0] == 'push'):
             return 'C_PUSH'
 
-        if (command[0] == 'pop'):
+        elif (command[0] == 'pop'):
             return 'C_POP'
+
+        elif (command[0] == 'goto'):
+            return 'C_GOTO'
+
+        elif (command[0] == 'if-goto'):
+            return 'C_IF'
+
+        elif (command[0] == 'function'):
+            return 'C_FUNCTION'
+
+        elif (command[0] == 'return'):
+            return 'C_RETURN'
+
+        elif (command[0] == 'call'):
+            return 'C_CALL'
 
 
     def arg1(self):
