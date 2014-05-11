@@ -61,6 +61,7 @@ class CodeWriter:
     # Command writers and the dispatcher
     def dispatchWriter(self, commandType, command):
         """Dispatches the write for the given command type."""
+        print command
 
         if (commandType == 'C_ARITHMETIC'):
             self.writeArithmetic(command[0])
@@ -76,6 +77,8 @@ class CodeWriter:
             pass
         elif (commandType == 'C_CALL'):
             pass
+        elif (commandType == 'C_LABEL'):
+            self.writeLabel(command[1])
         else:
             pass
 
@@ -86,6 +89,8 @@ class CodeWriter:
         pass
     
     # writeLabel is just an lCommand
+    def writeLabel(self, label):
+        self.lCommand(label)
 
     def writeGoto(self, label):
         """Writes assembly code for goto statement."""
@@ -96,6 +101,7 @@ class CodeWriter:
         """Writes assembly code for the if-goto statement.
         Pops top value off stack, if != 0, jump to label.
         Otherwise, continue with next command."""
+        self.decreaseStackPointer()
         self.stackToDest('D') # Pop top value off stack
         self.aCommand(label) # Load jump point
         self.cCommand(dest=None, comp='D', jump='JNE') # Jump if != 0
@@ -118,7 +124,6 @@ class CodeWriter:
     def writeArithmetic(self, command):
         """Writes the assembly code that is the given translation
         of the command given."""
-        print command
         # Arithmetic
         if (command == 'add'):
             self.binaryOp('D+A')

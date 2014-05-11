@@ -83,6 +83,9 @@ class parser:
         elif (command[0] == 'call'):
             return 'C_CALL'
 
+        elif (command[0] == 'label'):
+            return 'C_LABEL'
+
         else:
             return 'C_UNKNOWN'
 
