@@ -83,6 +83,9 @@ class parser:
         elif (command[0] == 'call'):
             return 'C_CALL'
 
+        else:
+            return 'C_UNKNOWN'
+
 
     def arg1(self):
         """Returns the first argument of the current command.

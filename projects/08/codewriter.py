@@ -66,6 +66,16 @@ class CodeWriter:
             self.writeArithmetic(command[0])
         elif (commandType == 'C_POP' or commandType == 'C_PUSH'):
             self.writePushPop(command[0], command[1], command[2])
+        elif (commandType == 'C_GOTO'):
+            self.writeGoto(command[1])
+        elif (commandType == 'C_IF'):
+            self.writeIf(command[1])
+        elif (commandType == 'C_FUNCTION'):
+            pass
+        elif (commandType == 'C_RETURN'):
+            pass
+        elif (commandType == 'C_CALL'):
+            pass
         else:
             pass
 
@@ -79,11 +89,16 @@ class CodeWriter:
 
     def writeGoto(self, label):
         """Writes assembly code for goto statement."""
-        pass
+        self.aCommand(label)
+        self.cCommand(dest=None, comp='0', jump='JMP') # Unconditional jump
 
     def writeIf(self, label):
-        """Writes assembly code for the if-goto statement."""
-        pass
+        """Writes assembly code for the if-goto statement.
+        Pops top value off stack, if != 0, jump to label.
+        Otherwise, continue with next command."""
+        self.stackToDest('D') # Pop top value off stack
+        self.aCommand(label) # Load jump point
+        self.cCommand(dest=None, comp='D', jump='JNE') # Jump if != 0
     
     def writeCall(self, functionName, numArgs):
         """Writes assembly code for the function: functionName
