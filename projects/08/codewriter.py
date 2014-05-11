@@ -69,6 +69,37 @@ class CodeWriter:
         else:
             pass
 
+    def writeInit(self):
+        """Writes assembly code that effects the VM initialization,
+        also called the bootstrap code. This code must be placed at
+        the beginning of the output file."""
+        pass
+    
+    # writeLabel is just an lCommand
+
+    def writeGoto(self, label):
+        """Writes assembly code for goto statement."""
+        pass
+
+    def writeIf(self, label):
+        """Writes assembly code for the if-goto statement."""
+        pass
+    
+    def writeCall(self, functionName, numArgs):
+        """Writes assembly code for the function: functionName
+        with numArgs number of arguments."""
+        pass
+
+    def writeReturn(self):
+        """Writes assembly code for that returns from the
+        current function."""
+        pass
+
+    def writeFunction(self, functionName, numLocals):
+        """Writes assembly code for the function: functionName
+        with numLocals number of local variable."""
+        pass
+    
     def writeArithmetic(self, command):
         """Writes the assembly code that is the given translation
         of the command given."""
