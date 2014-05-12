@@ -19,7 +19,7 @@ class CodeWriter:
         
         # Create the current label.
         # This is machine read and wrote, so numeric labels will suffice
-        self.nextLabel = 0
+        self.UID = 0
 
         # Static label, this changes with each filename:
         # Forms the command labels @Xxx.j
@@ -47,11 +47,15 @@ class CodeWriter:
             p.advance()
             self.dispatchWriter(p.commandType(), p.currentCommand)
 
+    def labelUID(self):
+        temp = self.UID
+        self.UID += 1
+        return str(temp)
+
     # Label creating functions
     def newLabel(self):
         """Creates the next unused label."""
-        self.nextLabel += 1
-        return 'L' + str(self.nextLabel)
+        return 'L' + str(self.labelUID())
     
     def staticLabel(self, index):
         """Returns the static label of the index."""
@@ -109,7 +113,33 @@ class CodeWriter:
     def writeCall(self, functionName, numArgs):
         """Writes assembly code for the function: functionName
         with numArgs number of arguments."""
-        pass
+        return_address = 'return' + self.labelUID()
+        self.aCommand(return_address)
+        self.compToStack('A')
+        self.increaseStackPointer()
+
+        self.aCommand('LCL')
+        self.compToStack('M')
+        self.increaseStackPointer()
+
+        self.aCommand('ARG')
+        self.compToStack('M')
+        self.increaseStackPointer()
+
+        self.aCommand('THIS')
+        self.compToStack('M')
+        self.increaseStackPointer()
+
+        self.aCommand('THAT')
+        self.compToStack('M')
+        self.increaseStackPointer()
+
+        # ARG = SP - numArgs - 5
+        # LCL = SP
+        # goto functionName
+
+        self.lCommand(return_address)
+
 
     def writeReturn(self):
         """Writes assembly code for that returns from the
@@ -119,7 +149,10 @@ class CodeWriter:
     def writeFunction(self, functionName, numLocals):
         """Writes assembly code for the function: functionName
         with numLocals number of local variable."""
-        pass
+        self.writeLabel(functionName)
+        for (i in range(int(numLocals))):
+            self.constToStack(0)
+            self.increaseStackPointer()
     
     def writeArithmetic(self, command):
         """Writes the assembly code that is the given translation
