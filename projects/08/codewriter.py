@@ -78,14 +78,16 @@ class CodeWriter:
         elif (commandType == 'C_IF'):
             self.writeIf(command[1])
         elif (commandType == 'C_FUNCTION'):
-            pass
+            self.writeFunction(command[1], command[2])
         elif (commandType == 'C_RETURN'):
-            pass
+            self.writeReturn()
         elif (commandType == 'C_CALL'):
-            pass
+            self.writeCall(command[1], command[2])
         elif (commandType == 'C_LABEL'):
             self.writeLabel(command[1])
         else:
+            # Should probably throw some error here, but 
+            # its an academic exercise, not for production.
             pass
 
     def writeInit(self):
@@ -140,15 +142,10 @@ class CodeWriter:
         self.aCommand('SP')         # Load SP
         self.cCommand('D', 'M')     
         self.compToStack('D')       # Place *SP into stack 
-        self.increaseStackPointer()
-        self.constToStack(numArgs)  # Place numArgs onto stack
-        self.increaseStackPointer()
-        self.binaryOp('sub')        # Top of stack is now *SP - numArgs
-        self.constToStack('5')      # Push 5 onto stack
-        self.increaseStackPointer()
-        self.binaryOp('sub')        # Top is now *SP - numArgs - 5
-        self.decreaseStackPointer()
-        self.stackToDest('D')       # Load it into D
+        self.aCommand(numArgs)      # Place numArgs onto stack
+        self.cCommand('D', 'D-A')   # Top of stack is now *SP - numArgs
+        self.aCommand('5')          # Push 5 onto stack
+        self.cCommand('D', 'D-A')   # Top is now *SP - numArgs - 5
         self.aCommand('ARG')        # Load ARG
         self.cCommand('M', 'D')     # ARG = SP - numArgs - 5
 
