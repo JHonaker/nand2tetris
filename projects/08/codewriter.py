@@ -24,6 +24,8 @@ class CodeWriter:
         # Static label, this changes with each filename:
         # Forms the command labels @Xxx.j
         self.staticPrefix = ''
+        # Forms the command labels (f$b)
+        self.functionPrefix = ''
 
         if (isDirectory):
             for file in os.listdir('/' + outfile):
@@ -94,7 +96,7 @@ class CodeWriter:
     
     # writeLabel is just an lCommand
     def writeLabel(self, label):
-        self.lCommand(label)
+        self.lCommand(self.functionPrefix + label)
 
     def writeGoto(self, label):
         """Writes assembly code for goto statement."""
@@ -135,8 +137,28 @@ class CodeWriter:
         self.increaseStackPointer()
 
         # ARG = SP - numArgs - 5
+        self.aCommand('SP')         # Load SP
+        self.cCommand('D', 'M')     
+        self.compToStack('D')       # Place *SP into stack 
+        self.increaseStackPointer()
+        self.constToStack(numArgs)  # Place numArgs onto stack
+        self.increaseStackPointer()
+        self.binaryOp('sub')        # Top of stack is now *SP - numArgs
+        self.constToStack('5')      # Push 5 onto stack
+        self.increaseStackPointer()
+        self.binaryOp('sub')        # Top is now *SP - numArgs - 5
+        self.stackToDest('D')       # Load it into D
+        self.decreaseStackPointer()
+        self.aCommand('ARG')        # Load ARG
+        self.cCommand('M', 'D')     # ARG = SP - numArgs - 5
+
         # LCL = SP
+        self.aCommand('SP')
+        self.cCommand('D', 'M')
+        self.aCommand('LCL')
+        self.cCommand('M', 'D')
         # goto functionName
+        self.writeGoto(functionName)
 
         self.lCommand(return_address)
 
@@ -144,12 +166,14 @@ class CodeWriter:
     def writeReturn(self):
         """Writes assembly code for that returns from the
         current function."""
+        self.functionPrefix = ''
         pass
 
     def writeFunction(self, functionName, numLocals):
         """Writes assembly code for the function: functionName
         with numLocals number of local variable."""
         self.writeLabel(functionName)
+        self.functionPrefix = functionName + '$'
         for (i in range(int(numLocals))):
             self.constToStack(0)
             self.increaseStackPointer()
