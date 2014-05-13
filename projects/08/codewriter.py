@@ -147,8 +147,8 @@ class CodeWriter:
         self.constToStack('5')      # Push 5 onto stack
         self.increaseStackPointer()
         self.binaryOp('sub')        # Top is now *SP - numArgs - 5
-        self.stackToDest('D')       # Load it into D
         self.decreaseStackPointer()
+        self.stackToDest('D')       # Load it into D
         self.aCommand('ARG')        # Load ARG
         self.cCommand('M', 'D')     # ARG = SP - numArgs - 5
 
@@ -167,14 +167,72 @@ class CodeWriter:
         """Writes assembly code for that returns from the
         current function."""
         self.functionPrefix = ''
-        pass
+
+        # FRAME = LCL
+        self.aCommand('LCL')
+        self.cCommand('D', 'M')
+        self.aCommand('R13')        # R13 is FRAME
+        self.cCommand('M', 'D')
+        # RET = *(FRAME - 5)
+        self.aCommand('-5')
+        self.cCommand('D', 'D+A')
+        self.aCommand('R14')        # R14 is RET
+        self.cCommand('M', 'D')
+        # *ARG = pop()
+        self.decreaseStackPointer()
+        self.stackToDest('D')
+        self.aCommand('ARG')
+        self.cCommand('M', 'D')
+        # SP = ARG + 1
+        self.aCommand('SP')
+        self.cCommand('M', 'D+1')
+        # THAT = *(FRAME - 1)
+        self.aCommand('R13')        # Get FRAME
+        self.cCommand('D', 'M')     # D = FRAME
+        self.cCommand('D', 'D-1')   # D = FRAME - 1
+        self.cCommand('M', 'D')     # FRAME = FRAME - 1
+        self.cCommand('A', 'D')     # A = FRAME - 1
+        self.cCommand('D', 'M')     # D = *(FRAME - 1)
+        self.aCommand('THAT')       # A = *THAT
+        self.cCommand('M', 'D')     # THAT = *(FRAME - 1)
+        # THIS = *(FRAME - 2)
+        self.aCommand('R13')        # Get FRAME
+        self.cCommand('D', 'M')     # D = FRAME
+        self.cCommand('D', 'D-1')   # D = FRAME - 1
+        self.cCommand('M', 'D')     # FRAME = FRAME - 1 (-2 overall)
+        self.cCommand('A', 'D')     # A = FRAME - 1
+        self.cCommand('D', 'M')     # D = *(FRAME - 1)
+        self.aCommand('THIS')       # A = *THIS
+        self.cCommand('M', 'D')     # THIS = *(FRAME - 1)
+        # ARG = *(FRAME - 3)
+        self.aCommand('R13')        # Get FRAME
+        self.cCommand('D', 'M')     # D = FRAME
+        self.cCommand('D', 'D-1')   # D = FRAME - 1
+        self.cCommand('M', 'D')     # FRAME = FRAME - 1 (-3 overall)
+        self.cCommand('A', 'D')     # A = FRAME - 1
+        self.cCommand('D', 'M')     # D = *(FRAME - 1)
+        self.aCommand('ARG')       # A = *ARG
+        self.cCommand('M', 'D')     # ARG = *(FRAME - 1)
+        # LCL = *(FRAME - 4)
+        self.aCommand('R13')        # Get FRAME
+        self.cCommand('D', 'M')     # D = FRAME
+        self.cCommand('D', 'D-1')   # D = FRAME - 1
+        self.cCommand('M', 'D')     # FRAME = FRAME - 1 (-4 overall)
+        self.cCommand('A', 'D')     # A = FRAME - 1
+        self.cCommand('D', 'M')     # D = *(FRAME - 1)
+        self.aCommand('LCL')       # A = *LCL
+        self.cCommand('M', 'D')     # LCL = *(FRAME - 1)
+        # goto ret
+        self.aCommand('R14')        # Load RET
+        self.cCommand('A', 'M')
+        self.cCommand(None, '0', 'JMP')
 
     def writeFunction(self, functionName, numLocals):
         """Writes assembly code for the function: functionName
         with numLocals number of local variable."""
         self.writeLabel(functionName)
         self.functionPrefix = functionName + '$'
-        for (i in range(int(numLocals))):
+        for i in range(int(numLocals)):
             self.constToStack(0)
             self.increaseStackPointer()
     
