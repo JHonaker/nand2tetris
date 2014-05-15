@@ -150,7 +150,7 @@ class CodeWriter:
         """Writes assembly code for the function: functionName
         with numLocals number of local variable."""
         self.writeLabel(functionName)
-        for (i in range(int(numLocals))):
+        for i in range(int(numLocals)):
             self.constToStack(0)
             self.increaseStackPointer()
     
