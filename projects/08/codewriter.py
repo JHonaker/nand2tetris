@@ -1,7 +1,7 @@
 # Current temporary stage one implementation of the VM Code Generator
 #
 # Stack Arithmetic, Logical Commands, push contstant x
-# 
+#
 # Reference Note: -1 is true, 0 is false
 
 import os
@@ -16,7 +16,7 @@ class CodeWriter:
         isDirectory = outfile[-3:] != '.vm'
 
         self.outfile = open(outfile[:-3] + '.asm', 'w')
-        
+
         # Create the current label.
         # This is machine read and wrote, so numeric labels will suffice
         self.UID = 0
@@ -56,12 +56,12 @@ class CodeWriter:
     def newLabel(self):
         """Creates the next unused label."""
         return str(self.labelUID())
-    
+
     def staticLabel(self, index):
         """Returns the static label of the index."""
         return self.staticPrefix + '.' + str(index)
 
-    
+
     # Command writers and the dispatcher
     def dispatchWriter(self, commandType, command):
         """Dispatches the write for the given command type."""
@@ -91,7 +91,7 @@ class CodeWriter:
         also called the bootstrap code. This code must be placed at
         the beginning of the output file."""
         pass
-    
+
     # writeLabel is just an lCommand
     def writeLabel(self, label):
         self.lCommand(label)
@@ -109,7 +109,7 @@ class CodeWriter:
         self.stackToDest('D') # Pop top value off stack
         self.aCommand(label) # Load jump point
         self.cCommand(dest=None, comp='D', jump='JNE') # Jump if != 0
-    
+
     def writeCall(self, functionName, numArgs):
         """Writes assembly code for the function: functionName
         with numArgs number of arguments."""
@@ -154,7 +154,7 @@ class CodeWriter:
         self.cCommand('D', 'M')
         self.aCommand('LCL')
         self.cCommand('M', 'D')
-        
+
         # goto functionName
         self.aCommand(functionName)
         self.cCommand(None, '0', 'JMP')
@@ -165,7 +165,82 @@ class CodeWriter:
     def writeReturn(self):
         """Writes assembly code for that returns from the
         current function."""
-        pass
+        # FRAME = LCL
+        self.aCommand('LCL')
+        self.cCommand('D', 'M')
+        self.aCommand('R15')            # R15 = FRAME = LCL
+        self.cCommand('M', 'D')
+
+        # RET = *(FRAME - 5)
+        # D is still FRAME
+        self.aCommand('5')                  # A=5
+        self.cCommand('A', 'D-A')           # A=FRAME-5
+        self.cCommand('D', 'M')             # D=M=*(FRAME-5)
+        self.aCommand('R14')                # R14 = RET
+        self.cCommand('M', 'D')             # RET = *(FRAME-5)
+
+        # *ARG=pop()
+        self.decreaseStackPointer()
+        self.registerAddress('argument', '0') # AD = ARG
+        self.aCommand('R13')
+        self.cCommand('M', 'D')             # *R13=ARG
+        self.stackToDest('D')               # D=*SP
+        self.aCommand('R13')
+        self.cCommand('A', 'M')             # A=*R13=ARG
+        self.cCommand('M', 'D')             # *(ARG)=*SP
+
+        # SP = ARG + 1
+        self.aCommand('ARG')
+        self.cCommand('D', 'M')             # D=ARG
+        self.aCommand('SP')
+        self.cCommand('M', 'D+1')           # SP = ARG+1
+
+        self.aCommand('R15')
+        self.cCommand('D', 'M')
+        self.cCommand('D', 'D-1')
+        self.aCommand('R15')
+        self.cCommand('M', 'D')
+        self.cCommand('A', 'D')
+        self.cCommand('D', 'M')
+        self.aCommand('THAT')
+        self.cCommand('M', 'D')             # THAT=*(FRAME-1)
+
+        self.aCommand('R15')
+        self.cCommand('D', 'M')
+        self.cCommand('D', 'D-1')
+        self.aCommand('R15')
+        self.cCommand('M', 'D')
+        self.cCommand('A', 'D')
+        self.cCommand('D', 'M')
+        self.aCommand('THIS')
+        self.cCommand('M', 'D')             # THIS=*(FRAME-1)
+
+        self.aCommand('R15')
+        self.cCommand('D', 'M')
+        self.cCommand('D', 'D-1')
+        self.aCommand('R15')
+        self.cCommand('M', 'D')
+        self.cCommand('A', 'D')
+        self.cCommand('D', 'M')
+        self.aCommand('ARG')
+        self.cCommand('M', 'D')             # ARG=*(FRAME-1)
+
+        self.aCommand('R15')
+        self.cCommand('D', 'M')
+        self.cCommand('D', 'D-1')
+        self.aCommand('R15')
+        self.cCommand('M', 'D')
+        self.cCommand('A', 'D')
+        self.cCommand('D', 'M')
+        self.aCommand('LCL')
+        self.cCommand('M', 'D')             # LCL=*(FRAME-1)
+
+        # Load the value of return address
+        self.aCommand('R14')                # A=R14=RET
+        self.cCommand('A', 'M')             # A=*RET
+
+        # goto RET
+        self.cCommand(None, '0', 'JMP')
 
     def writeFunction(self, functionName, numLocals):
         """Writes assembly code for the function: functionName
@@ -174,7 +249,7 @@ class CodeWriter:
         for i in range(int(numLocals)):
             self.constToStack(0)
             self.increaseStackPointer()
-    
+
     def writeArithmetic(self, command):
         """Writes the assembly code that is the given translation
         of the command given."""
