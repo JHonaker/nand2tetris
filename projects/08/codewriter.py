@@ -118,41 +118,45 @@ class CodeWriter:
         """Writes assembly code for the function: functionName
         with numArgs number of arguments."""
         return_address = 'return' + self.labelUID()
+
         self.aCommand(return_address)
         self.compToStack('A')
         self.increaseStackPointer()
 
         self.aCommand('LCL')
-        self.compToStack('M')
+        self.cCommand('D', 'M')
+        self.compToStack('D')
         self.increaseStackPointer()
 
         self.aCommand('ARG')
-        self.compToStack('M')
+        self.cCommand('D', 'M')
+        self.compToStack('D')
         self.increaseStackPointer()
 
         self.aCommand('THIS')
-        self.compToStack('M')
+        self.cCommand('D', 'M')
+        self.compToStack('D')
         self.increaseStackPointer()
 
         self.aCommand('THAT')
-        self.compToStack('M')
+        self.cCommand('D', 'M')
+        self.compToStack('D')
         self.increaseStackPointer()
 
         # ARG = SP - numArgs - 5
         self.aCommand('SP')         # Load SP
         self.cCommand('D', 'M')     
-        self.compToStack('D')       # Place *SP into stack 
         self.aCommand(numArgs)      # Place numArgs onto stack
         self.cCommand('D', 'D-A')   # Top of stack is now *SP - numArgs
         self.aCommand('5')          # Push 5 onto stack
         self.cCommand('D', 'D-A')   # Top is now *SP - numArgs - 5
-        self.aCommand('ARG')        # Load ARG
+        self.registerAddress('argument', '0', 'A')        # Load ARG
         self.cCommand('M', 'D')     # ARG = SP - numArgs - 5
 
         # LCL = SP
         self.aCommand('SP')
         self.cCommand('D', 'M')
-        self.aCommand('LCL')
+        self.registerAddress('local', '0', 'A')
         self.cCommand('M', 'D')
         # goto functionName
         self.writeGoto(functionName)
@@ -171,18 +175,20 @@ class CodeWriter:
         self.aCommand('R13')        # R13 is FRAME
         self.cCommand('M', 'D')
         # RET = *(FRAME - 5)
-        self.aCommand('-5')
-        self.cCommand('D', 'D+A')
+        self.aCommand('5')
+        self.cCommand('A', 'D-A')
+        self.cCommand('D', 'M')
         self.aCommand('R14')        # R14 is RET
         self.cCommand('M', 'D')
         # *ARG = pop()
         self.decreaseStackPointer()
-        self.stackToDest('D')
-        self.aCommand('ARG')
-        self.cCommand('M', 'D')
+        self.stackToReg('argument', '0')
         # SP = ARG + 1
+        self.registerAddress('argument', '0', 'A')
+        self.cCommand('D', 'M')
+        self.cCommand('D', 'D+1')
         self.aCommand('SP')
-        self.cCommand('M', 'D+1')
+        self.cCommand('M', 'D')
         # THAT = *(FRAME - 1)
         self.aCommand('R13')        # Get FRAME
         self.cCommand('D', 'M')     # D = FRAME
@@ -319,7 +325,7 @@ class CodeWriter:
 
 
     # Register manipulators
-    def registerAddress(self, segment, index):
+    def registerAddress(self, segment, index, dest='AD'):
         """Read the address of the register (segment index) into A and D."""
         segments = {'pointer': 3, 'temp': 5, 'local': 'LCL', 'argument': 'ARG',
                 'this': 'THIS', 'that': 'THAT', 'static': self.staticLabel(index) }
@@ -329,7 +335,7 @@ class CodeWriter:
         self.aCommand(segments[segment])
         if (segment in ['local', 'argument', 'this', 'that']):
             self.cCommand('A', 'M')
-        self.cCommand('AD', 'D+A')
+        self.cCommand(dest, 'D+A')
 
 
     # Write to stack commands
@@ -346,8 +352,7 @@ class CodeWriter:
 
     def regToStack(self, segment, index):
         """Place the value of the register on the stack."""
-        self.registerAddress(segment, index)
-        self.cCommand('D', 'M') # compToStack overwrites A, so move to D first
+        self.registerAddress(segment, index, 'D')
         self.compToStack('D')
 
 
@@ -359,13 +364,14 @@ class CodeWriter:
 
     def stackToReg(self, segment, index):
         """Place the value in the stack into the appropriate register."""
-        self.registerAddress(segment, index)
-        self.aCommand('R13')
+        self.registerAddress(segment, index, 'D')
+        self.aCommand('R15')
         self.cCommand('M', 'D')
         self.stackToDest('D')
-        self.aCommand('R13')
+        self.aCommand('R15')
         self.cCommand('A', 'M')
         self.cCommand('M', 'D')
+
 
 
     # Stack pointer manipulators
