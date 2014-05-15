@@ -55,7 +55,7 @@ class CodeWriter:
     # Label creating functions
     def newLabel(self):
         """Creates the next unused label."""
-        return 'L' + str(self.labelUID())
+        return str(self.labelUID())
     
     def staticLabel(self, index):
         """Returns the static label of the index."""
@@ -113,30 +113,51 @@ class CodeWriter:
     def writeCall(self, functionName, numArgs):
         """Writes assembly code for the function: functionName
         with numArgs number of arguments."""
-        return_address = 'return' + self.labelUID()
-        self.aCommand(return_address)
-        self.compToStack('A')
+        return_address = self.newLabel()
+
+        self.constToStack(return_address)
         self.increaseStackPointer()
 
         self.aCommand('LCL')
-        self.compToStack('M')
+        self.cCommand('D', 'M')
+        self.compToStack('D')
         self.increaseStackPointer()
 
         self.aCommand('ARG')
-        self.compToStack('M')
+        self.cCommand('D', 'M')
+        self.compToStack('D')
         self.increaseStackPointer()
 
         self.aCommand('THIS')
-        self.compToStack('M')
+        self.cCommand('D', 'M')
+        self.compToStack('D')
         self.increaseStackPointer()
 
         self.aCommand('THAT')
-        self.compToStack('M')
+        self.cCommand('D', 'M')
+        self.compToStack('D')
         self.increaseStackPointer()
 
         # ARG = SP - numArgs - 5
+        self.aCommand('SP')         # A=SP
+        self.cCommand('D', 'M')     # D=M=SP
+        self.aCommand(numArgs)      # A=numArgs
+        self.cCommand('D', 'D-A')   # D=D-A=SP-numArgs
+        self.aCommand('5')          # A=5
+        self.cCommand('D', 'D-A')   # D=D-A=SP-numArgs-5
+
+        self.aCommand('ARG')
+        self.cCommand('M', 'D')
+
         # LCL = SP
+        self.aCommand('SP')
+        self.cCommand('D', 'M')
+        self.aCommand('LCL')
+        self.cCommand('M', 'D')
+        
         # goto functionName
+        self.aCommand(functionName)
+        self.cCommand(None, '0', 'JMP')
 
         self.lCommand(return_address)
 
