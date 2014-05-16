@@ -76,11 +76,11 @@ class CodeWriter:
         elif (commandType == 'C_IF'):
             self.writeIf(command[1])
         elif (commandType == 'C_FUNCTION'):
-            pass
+            self.writeFunction(command[1], command[2])
         elif (commandType == 'C_RETURN'):
-            pass
+            self.writeReturn()
         elif (commandType == 'C_CALL'):
-            pass
+            self.writeCall(command[1], command[2])
         elif (commandType == 'C_LABEL'):
             self.writeLabel(command[1])
         else:
