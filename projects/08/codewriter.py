@@ -9,13 +9,17 @@ from parser import *
 
 class CodeWriter:
 
-    def __init__(self, outfile):
+    def __init__(self, outfile, sys_file=True):
         """Opens the file output file/stream and gets
         ready to write into it."""
 
         isDirectory = outfile[-3:] != '.vm'
 
-        self.outfile = open(outfile[:-3] + '.asm', 'w')
+        self.outfile = None
+        if(isDirectory):
+            self.outfile = open(outfile + '.asm', 'w')
+        else:
+            self.outfile = open(outfile[:-3] + '.asm', 'w')
 
         # Create the current label.
         # This is machine read and wrote, so numeric labels will suffice
@@ -25,8 +29,11 @@ class CodeWriter:
         # Forms the command labels @Xxx.j
         self.staticPrefix = ''
 
+        if (sys_file == True):
+            self.writeInitialization()
+
         if (isDirectory):
-            for file in os.listdir('/' + outfile):
+            for file in os.listdir(outfile):
                 if file.endswith(".vm"):
                     self.setFileName('./' + outfile + '/' + file)
 
@@ -35,7 +42,6 @@ class CodeWriter:
 
         self.outfile.close()
         print 'Closed file: ' + outfile[:-3] + '.asm'
-
 
     def setFileName(self, fileName):
         """Informs the code writer that the translations of
@@ -52,10 +58,19 @@ class CodeWriter:
         self.UID += 1
         return str(temp)
 
+    def writeInitialization(self):
+        """Writes the initialization code.
+        Sets SP to 256, and calls Sys.init."""
+        self.aCommand('256')
+        self.cCommand('D', 'A')
+        self.aCommand('SP')
+        self.cCommand('M', 'D')
+        self.writeCall('Sys.init', '0')
+
     # Label creating functions
     def newLabel(self):
         """Creates the next unused label."""
-        return str(self.labelUID())
+        return 'LABEL' + str(self.labelUID())
 
     def staticLabel(self, index):
         """Returns the static label of the index."""
@@ -215,7 +230,7 @@ class CodeWriter:
         self.cCommand('A', 'D')
         self.cCommand('D', 'M')
         self.aCommand('THIS')
-        self.cCommand('M', 'D')             # THIS=*(FRAME-1)
+        self.cCommand('M', 'D')             # THIS=*(FRAME-2)
 
         self.aCommand('R15')
         self.cCommand('D', 'M')
@@ -225,7 +240,7 @@ class CodeWriter:
         self.cCommand('A', 'D')
         self.cCommand('D', 'M')
         self.aCommand('ARG')
-        self.cCommand('M', 'D')             # ARG=*(FRAME-1)
+        self.cCommand('M', 'D')             # ARG=*(FRAME-3)
 
         self.aCommand('R15')
         self.cCommand('D', 'M')
@@ -235,7 +250,7 @@ class CodeWriter:
         self.cCommand('A', 'D')
         self.cCommand('D', 'M')
         self.aCommand('LCL')
-        self.cCommand('M', 'D')             # LCL=*(FRAME-1)
+        self.cCommand('M', 'D')             # LCL=*(FRAME-4)
 
         # Load the value of return address
         self.aCommand('R14')                # A=R14=RET
@@ -249,9 +264,6 @@ class CodeWriter:
         with numLocals number of local variable."""
         self.writeLabel(functionName)
         for i in range(int(numLocals)):
-            self.constToStack(0)
-            self.increaseStackPointer()
-
             self.constToStack(0)
             self.increaseStackPointer()
 
