@@ -5,6 +5,7 @@
 # Reference Note: -1 is true, 0 is false
 
 import os
+import string
 from parser import *
 
 class CodeWriter:
@@ -30,7 +31,7 @@ class CodeWriter:
         self.staticPrefix = ''
 
         if (sys_file == True):
-            self.writeInitialization()
+            self.writeInit()
 
         if (isDirectory):
             for file in os.listdir(outfile):
@@ -43,10 +44,11 @@ class CodeWriter:
         self.outfile.close()
         print 'Closed file: ' + outfile[:-3] + '.asm'
 
-    def setFileName(self, fileName):
+    def setFileName(self, filePath):
         """Informs the code writer that the translations of
         a new VM file has started."""
-        p = parser(fileName)
+        p = parser(filePath)
+        fileName = filePath.split('/')[-1]
         self.staticPrefix = fileName.split('.')[0]
 
         while(p.hasMoreCommands()):
@@ -54,18 +56,8 @@ class CodeWriter:
             self.dispatchWriter(p.commandType(), p.currentCommand)
 
     def labelUID(self):
-        temp = self.UID
         self.UID += 1
-        return str(temp)
-
-    def writeInitialization(self):
-        """Writes the initialization code.
-        Sets SP to 256, and calls Sys.init."""
-        self.aCommand('256')
-        self.cCommand('D', 'A')
-        self.aCommand('SP')
-        self.cCommand('M', 'D')
-        self.writeCall('Sys.init', '0')
+        return str(self.UID)
 
     # Label creating functions
     def newLabel(self):
@@ -81,6 +73,8 @@ class CodeWriter:
     def dispatchWriter(self, commandType, command):
         """Dispatches the write for the given command type."""
         print command
+
+        self.outfile.write('// **** '+string.join(command)+' **** //\n')
 
         if (commandType == 'C_ARITHMETIC'):
             self.writeArithmetic(command[0])
@@ -107,7 +101,11 @@ class CodeWriter:
         """Writes assembly code that effects the VM initialization,
         also called the bootstrap code. This code must be placed at
         the beginning of the output file."""
-        pass
+        self.aCommand('256')
+        self.cCommand('D', 'A')
+        self.aCommand('SP')
+        self.cCommand('M', 'D')
+        self.writeCall('Sys.init', '0')
 
     # writeLabel is just an lCommand
     def writeLabel(self, label):
@@ -353,7 +351,7 @@ class CodeWriter:
 
 
     # Register manipulators
-    def registerAddress(self, segment, index):
+    def registerAddress(self, segment, index, dest='AD'):
         """Read the address of the register (segment index) into A and D."""
         segments = {'pointer': 3, 'temp': 5, 'local': 'LCL', 'argument': 'ARG',
                 'this': 'THIS', 'that': 'THAT', 'static': self.staticLabel(index) }
@@ -363,7 +361,7 @@ class CodeWriter:
         self.aCommand(segments[segment])
         if (segment in ['local', 'argument', 'this', 'that']):
             self.cCommand('A', 'M')
-        self.cCommand('AD', 'D+A')
+        self.cCommand(dest, 'D+A')
 
 
     # Write to stack commands
