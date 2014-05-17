@@ -353,8 +353,14 @@ class CodeWriter:
     # Register manipulators
     def registerAddress(self, segment, index, dest='AD'):
         """Read the address of the register (segment index) into A and D."""
+
+        if (segment == 'static'):
+            self.aCommand(self.staticLabel(index))
+            self.cCommand(dest, 'A')
+            return
+
         segments = {'pointer': 3, 'temp': 5, 'local': 'LCL', 'argument': 'ARG',
-                'this': 'THIS', 'that': 'THAT', 'static': self.staticLabel(index) }
+                'this': 'THIS', 'that': 'THAT' }
 
         self.aCommand(index)
         self.cCommand('D', 'A')
